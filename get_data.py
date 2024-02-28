@@ -15,7 +15,7 @@ import json
 import pygsheets
 
 
-service_account_info = json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"])
+service_account_info = st.secrets["FIREBASE_SERVICE_ACCOUNT"]
 
 # Authorize pygsheets with the service account
 gc = pygsheets.authorize(service_account_info=service_account_info)
