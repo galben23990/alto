@@ -14,12 +14,24 @@ import streamlit as st
 import json
 import pygsheets
 
+import json
+import pygsheets
+import streamlit as st
 
+# Load the service account credentials from Streamlit secrets
 service_account_info = st.secrets["FIREBASE_SERVICE_ACCOUNT"]
 
+# Convert AttrDict to a regular dictionary
+service_account_dict = dict(service_account_info)
+
+# Write the credentials to a temporary file
+temp_cred_file = "temp_service_account.json"
+with open(temp_cred_file, 'w') as file:
+    json.dump(service_account_dict, file)
+
 # Authorize pygsheets with the service account
-gc = pygsheets.authorize(service_account_info=service_account_info)
-#
+gc = pygsheets.authorize(service_file=temp_cred_file)
+
 
 def get_data():
     sh = gc.open("Alto")
