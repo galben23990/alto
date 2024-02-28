@@ -18,10 +18,10 @@ def Create_Investor_PNL():
 
 
     st.title('Investor P&L Report')
-    with open(r'data\indexed _costumer_data.json') as f:
+    with open(r'data/indexed _costumer_data.json') as f:
         data_costumer = json.load(f)
 
-    with open(r'data\parameters.json') as f:
+    with open(r'data/parameters.json') as f:
         parameters = json.load(f)
 
 
