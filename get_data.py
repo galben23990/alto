@@ -15,16 +15,10 @@ import json
 import pygsheets
 
 
-
-# key_dict= json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT"])
-# cred = service_account.Credentials.from_service_account_info(key_dict)
-# client =bigquery.Client.from_service_account_info(key_dict)
-
-# Load the service account credentials
-service_account_info = json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"]["json"])
+service_account_info = json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"])
 
 # Authorize pygsheets with the service account
-gc = pygsheets.authorize(service_account_info=service_account_info)# key_dict= json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT"])
+gc = pygsheets.authorize(service_account_info=service_account_info)
 #
 
 def get_data():
