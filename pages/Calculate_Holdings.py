@@ -40,7 +40,7 @@ def Calculate_Holdings():
     col1, col2 = st.columns(2)
 
     with col1:
-        st.header('Select Quarter or Date')
+        st.header('Select Quarter or Datee')
         quarter = st.selectbox('Choose Quarter or Date', ['','Q1-23', 'Q2-23', 'Q3-23', 'Q4-22','Specific Date'],)
         if quarter!='' and quarter!='Specific Date':
             d= get_quarter_dates(quarter)
