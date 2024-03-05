@@ -67,7 +67,7 @@ def Calculate_Holdings():
                     holdings = holding_per_date(payment, d)
                     holdings = holdings.sort_values(by='holdings', ascending=False)
                     holdings = holdings.set_index("investor_ID")
-                    holdings['holdings_percent'] = holdings['holdings'].apply(lambda x: f'{x * 100:.2f}%')
+                    holdings['holdings_percent'] = holdings['holdings'].apply(lambda x: f'{x * 100}%')
                     st.dataframe(holdings[['investor_name', 'feeder', 'holdings_percent']])
                 with col4:
                     top_holdings = holdings.iloc[:7]
