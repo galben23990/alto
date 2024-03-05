@@ -67,14 +67,8 @@ def Calculate_Holdings():
                     holdings = holding_per_date(payment, d)
                     holdings = holdings.sort_values(by='holdings', ascending=False)
                     holdings = holdings.set_index("investor_ID")
-                    # Calculate the number of decimal places needed for each value in the holdings column
-                    decimal_places = holdings['holdings'].apply(lambda x: len(str(x).split('.')[1]) if '.' in str(x) else 0)
-                    
-                    # Determine the maximum number of decimal places needed
-                    max_decimal_places = decimal_places.max()
-                    
-                    # Format the 'holdings_percent' column accordingly
-                    holdings['holdings_percent'] = holdings['holdings'].apply(lambda x: f'{x * 100:.{decimal_places[x]}f}%')
+                    holdings['holdings_percent'] = holdings['holdings'].apply(lambda x: f'{x * 100:.15f}%')
+
 
                     st.dataframe(holdings[['investor_name', 'feeder', 'holdings_percent']])
                 with col4:
