@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import date, datetime
 import pandas as pd
-from get_data import main_create_final_df
+from get_data import matix_per_date
 
 def Calculate_Matrix():
     def get_quarter_dates(quarter):
@@ -37,7 +37,7 @@ def Calculate_Matrix():
         with spinner_load.container():
             with st.spinner("Calculating Matrix..."):
                 # This section is adjusted to properly display the DataFrame in Streamlit
-                df,holdigns = main_create_final_df(d.year, d.month, d.day)
+                df = matix_per_date(datetime(d.year, d.month, d.day))
                 st.dataframe(df)
                 temp_excel_file = "matrix_data.xlsx"
                 df.to_excel(temp_excel_file, index=False)
