@@ -64,7 +64,7 @@ def Calculate_Holdings():
                 col3, col4 = st.columns(2)
                 with col3:
                     # Perform calculations and display results
-                    payment, commitment, report = get_data()
+                    payment, commitment, report,x = get_data()
                     holdings = holding_per_date(payment, d)
                     holdings = holdings.sort_values(by='holdings', ascending=False)
                     holdings = holdings.set_index("investor_ID")
