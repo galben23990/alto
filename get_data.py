@@ -15,9 +15,8 @@ import json
 import pygsheets
 
 
-# service_account_info = st.secrets["FIREBASE_SERVICE_ACCOUNT"]
+service_account_info = st.secrets["FIREBASE_SERVICE_ACCOUNT"]
 # Load the service account credentials from Streamlit secrets
-service_account_info = json.loads(os.environ["FIREBASE_SERVICE_ACCOUNT"])
 
 # Convert AttrDict to a regular dictionary
 service_account_dict = dict(service_account_info)
