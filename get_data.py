@@ -33,6 +33,7 @@ def get_data():
     sh = gc.open("Alto")
     wks = sh.worksheet_by_title("payment")
     payment = wks.get_as_df()
+    st.write(payment)
     payment.payment_date=pd.to_datetime(payment.payment_date)
     wks = sh.worksheet_by_title("commitment")
     commitment = wks.get_as_df()
