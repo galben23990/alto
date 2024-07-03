@@ -33,7 +33,6 @@ def get_data():
     sh = gc.open("Alto")
     wks = sh.worksheet_by_title("payment")
     payment = wks.get_as_df()
-    st.write(payment)
     payment.payment_date=pd.to_datetime(payment.payment_date)
     wks = sh.worksheet_by_title("commitment")
     commitment = wks.get_as_df()
@@ -50,7 +49,6 @@ def holding_per_date(payment,d):
     dt = datetime.combine(d, datetime.min.time())
     payment = payment[payment.payment_date <= dt]
     ## calculate the holdings per investor per date sum over payment_sum calling_commitment and debt_from_commitment
-    st.write(payment)
     holdings = (payment.groupby(by=['investor_ID', 'investor_name', 'feeder'])[['payment_sum', 'calling_commitment', 'debt_from_commitment']].sum())
     holdings = holdings.reset_index()
     holdings["holdings"] = holdings['payment_sum'] / holdings['payment_sum'].sum()
