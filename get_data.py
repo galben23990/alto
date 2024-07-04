@@ -35,7 +35,6 @@ def get_data():
     payment = wks.get_as_df()
     payment.payment_date=pd.to_datetime(payment.payment_date)
     wks = sh.worksheet_by_title("commitment")
-    st.write(payment)
     commitment = wks.get_as_df()
     commitment.commitment_date = pd.to_datetime(commitment.commitment_date)
     wks = sh.worksheet_by_title("report")
@@ -59,6 +58,7 @@ def holding_per_date(payment,d):
     holdings_feeder.rename(columns={'payment_sum': 'feeder_holdings'}, inplace=True)
     holdings=pd.merge(holdings, holdings_feeder, on='feeder')
     holdings["holdings_per_feeder"] = holdings['payment_sum'] / holdings['feeder_holdings']
+    st.write(holdings)
     return holdings
 
 # def disribution_make_table(distribution,payment):
