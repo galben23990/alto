@@ -229,6 +229,7 @@ def matix_per_date(d):
     matrix[coloumn_list_dollar]=matrix[coloumn_list_dollar].astype(int)
     matrix['other_expenses_commision']=-matrix['other_expenses_commision']
     matrix['total_expenses']+=matrix['other_expenses_commision']-matrix['other_expenses']
+    st.write(matrix)
 
     matrix.drop(columns=['cash_and_cash_equivalents', 'deferred_inception_expense_net',
      'related_parties', 'total_current_assets', 'investments_in_investees',
