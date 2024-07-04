@@ -7,7 +7,7 @@ import numpy as np
 import json
 from google.oauth2 import service_account
 import pygsheets
-import json
+import jsons
 import os
 from datetime import datetime
 import streamlit as st
@@ -58,7 +58,6 @@ def holding_per_date(payment,d):
     holdings_feeder.rename(columns={'payment_sum': 'feeder_holdings'}, inplace=True)
     holdings=pd.merge(holdings, holdings_feeder, on='feeder')
     holdings["holdings_per_feeder"] = holdings['payment_sum'] / holdings['feeder_holdings']
-    st.write(holdings)
     return holdings
 
 # def disribution_make_table(distribution,payment):
