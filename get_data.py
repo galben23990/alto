@@ -196,7 +196,6 @@ def matix_per_date(d):
     matrix = matrix.fillna(0)
 
 
-    st.write(matrix)
     matrix['profit_for_successes']=matrix['rent_income']-matrix['professional_expenses']
     -matrix['management_fees']-matrix['interest_fees']+matrix['other_expenses_commision']
     +matrix['profits_share_of_investees']+matrix['fair_value_adjustments']+matrix['retained_earnings']
