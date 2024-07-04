@@ -201,11 +201,8 @@ def matix_per_date(d):
     upper_bound_success_fee = calc_sucsess_bound(payment, distribution, current_report.end_date[0],intrest_fees=preferd_interest*1/(1-success_fee))
     lower_bound_success_fee.rename(columns={'bound':'lower_bound_success_fee'},inplace=True)
     upper_bound_success_fee.rename(columns={'bound':'upper_bound_success_fee'},inplace=True)
-    matrix = pd.merge(matrix, intrest, on='investor_name', how='left')
-
-    for col in ['interest', 'principal', 'paid_interest', 'paid_principal', 'interest_movement', 'principal_movement', 'paid_interest_movement', 'paid_principal_movement', 'interest_fees_investor']:
-        matrix[col] = matrix[col].fillna(0)    matrix=pd.merge(matrix,fee_bounds,on='investor_name')
-    
+    fee_bounds=pd.merge(lower_bound_success_fee,upper_bound_success_fee,on='investor_name')
+    matrix=pd.merge(matrix,fee_bounds,on='investor_name')
     matrix['success_fee']=((matrix['profit_for_successes']>matrix['lower_bound_success_fee'])\
                           *(matrix['profit_for_successes']<matrix['upper_bound_success_fee'])\
                           *(matrix['profit_for_successes']-matrix['lower_bound_success_fee']))\
