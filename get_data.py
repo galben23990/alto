@@ -186,6 +186,7 @@ def matix_per_date(d):
 
     # matrix[]
     st.write(matrix)
+    st.write(intrest)
     matrix=pd.merge(matrix,intrest,on='investor_name')
     st.write(matrix)
 
