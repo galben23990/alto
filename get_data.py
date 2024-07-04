@@ -193,6 +193,8 @@ def matix_per_date(d):
     # Fill missing investors in interest with zeros
     for col in ['interest', 'principal', 'paid_interest', 'paid_principal', 'interest_movement', 'principal_movement', 'paid_interest_movement', 'paid_principal_movement', 'interest_fees_investor']:
         matrix[col] = matrix[col].fillna(0)
+    matrix = matrix.fillna(0)
+
 
     st.write(matrix)
     matrix['profit_for_successes']=matrix['rent_income']-matrix['professional_expenses']
