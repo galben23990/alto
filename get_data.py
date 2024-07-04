@@ -70,28 +70,43 @@ def holding_per_date(payment,d):
 #         tmp['distribution']=tmp['distribution']*float(r['sum'].replace(',', ''))
 #         final_distribution=pd.concat([final_distribution,tmp])
 #     return final_distribution
-def calc_interest(payment, distribution,cur_date,investment_part=0.7,intrest_fees=0.1):
-    final_interest=[]
-    for name in payment.investor_name.unique():
-        CF_df=payment[payment.investor_name==name]
-        if any(CF_df['feeder']=="Alto real estate Holdings US, LP"):
+def calc_interest(payment, distribution, cur_date, investment_part=0.7, intrest_fees=0.1):
+    final_interest = []
+    all_investors = payment['investor_name'].unique()
+
+    for name in all_investors:
+        CF_df = payment[payment['investor_name'] == name]
+        
+        # Check if the investor is part of "Alto real estate Holdings US, LP"
+        if any(CF_df['feeder'] == "Alto real estate Holdings US, LP"):
+            interest_id = pd.DataFrame({
+                'investor_name': name,
+                'date': cur_date,
+                'interest': 0.0,
+                'principal': 0.0,
+                'paid_interest': 0.0,
+                'paid_principal': 0.0
+            }, index=[0])
+            final_interest.append(interest_id)
             continue
-        CF_df=CF_df[['payment_date','payment_sum']]
-        CF_df.rename(columns={'payment_date':'date','payment_sum':'cash_flow'},inplace=True)
-        distribution_id=distribution[distribution.investor_name==name]
-        distribution_id=distribution_id[['date','distribution']]
-        distribution_id.rename(columns={'distribution':'cash_flow'},inplace=True)
-        distribution_id['date']=pd.to_datetime(distribution_id['date'])
-        CF_df=pd.concat([CF_df,distribution_id])
-        CF_df=CF_df[CF_df.date<=cur_date]
-        CF_df.loc[len(CF_df.index)]=[cur_date,0.0]
-        CF_df.sort_values(by='date',inplace=True)
-        CF_df.reset_index(inplace=True,drop=True)
-        CF_df['principal']=0
-        CF_df['interest']=0
-        CF_df['paid_interest']=0
-        CF_df['paid_principal']=0
-        for i,r in CF_df.iterrows():
+        
+        CF_df = CF_df[['payment_date', 'payment_sum']]
+        CF_df.rename(columns={'payment_date': 'date', 'payment_sum': 'cash_flow'}, inplace=True)
+        distribution_id = distribution[distribution['investor_name'] == name]
+        distribution_id = distribution_id[['date', 'distribution']]
+        distribution_id.rename(columns={'distribution': 'cash_flow'}, inplace=True)
+        distribution_id['date'] = pd.to_datetime(distribution_id['date'])
+        CF_df = pd.concat([CF_df, distribution_id])
+        CF_df = CF_df[CF_df['date'] <= cur_date]
+        CF_df.loc[len(CF_df.index)] = [cur_date, 0.0]
+        CF_df.sort_values(by='date', inplace=True)
+        CF_df.reset_index(inplace=True, drop=True)
+        CF_df['principal'] = 0
+        CF_df['interest'] = 0
+        CF_df['paid_interest'] = 0
+        CF_df['paid_principal'] = 0
+        
+        for i, r in CF_df.iterrows():
             if i == 0:
                 assert (r['cash_flow'] >= 0)
                 CF_df.loc[i, 'principal'] = r['cash_flow'] * investment_part
@@ -100,24 +115,34 @@ def calc_interest(payment, distribution,cur_date,investment_part=0.7,intrest_fee
                 CF_df.loc[i, 'paid_principal'] = 0
             else:
                 days = (r['date'] - CF_df.loc[i - 1, 'date']).days
-                CF_df.loc[i, 'interest'] = CF_df.loc[i-1, 'interest'] + (CF_df.loc[i - 1, 'principal']+CF_df.loc[i-1, 'interest']) * ((1+intrest_fees)**(days/365)-1)
-                CF_df.loc[i, 'paid_interest'] = CF_df.loc[i-1,'paid_interest']
-                CF_df.loc[i, 'paid_principal'] = CF_df.loc[i - 1, 'paid_principal']
-                if r.cash_flow>0:
-                    CF_df.loc[i,'principal']=CF_df.loc[i-1,'principal']+r['cash_flow']*investment_part
+                CF_df.loc[i, 'interest'] = CF_df.loc[i-1, 'interest'] + (CF_df.loc[i - 1, 'principal'] + CF_df.loc[i-1, 'interest']) * ((1 + intrest_fees) ** (days / 365) - 1)
+                CF_df.loc[i, 'paid_interest'] = CF_df.loc[i-1, 'paid_interest']
+                CF_df.loc[i, 'paid_principal'] = CF_df.loc[i-1, 'paid_principal']
+                if r.cash_flow > 0:
+                    CF_df.loc[i, 'principal'] = CF_df.loc[i-1, 'principal'] + r['cash_flow'] * investment_part
                 else:
-                    if -r['cash_flow']<CF_df.loc[i,'interest']:
-                        CF_df.loc[i, 'interest']=CF_df.loc[i,'interest']+r['cash_flow']
-                        CF_df.loc[i, 'principal']=CF_df.loc[i-1,'principal']
-                        CF_df.loc[i, 'paid_interest']=CF_df.loc[i,'paid_interest']-r['cash_flow']
+                    if -r['cash_flow'] < CF_df.loc[i, 'interest']:
+                        CF_df.loc[i, 'interest'] = CF_df.loc[i, 'interest'] + r['cash_flow']
+                        CF_df.loc[i, 'principal'] = CF_df.loc[i-1, 'principal']
+                        CF_df.loc[i, 'paid_interest'] = CF_df.loc[i, 'paid_interest'] - r['cash_flow']
                     else:
-                        CF_df.loc[i, 'paid_interest']=CF_df.loc[i, 'paid_interest']+CF_df.loc[i,'interest']
-                        CF_df.loc[i, 'paid_principal']=CF_df.loc[i, 'paid_principal']-(r['cash_flow']+CF_df.loc[i,'interest'])
-                        CF_df.loc[i, 'principal']=CF_df.loc[i-1,'principal']+(r['cash_flow']+CF_df.loc[i,'interest'])
+                        CF_df.loc[i, 'paid_interest'] = CF_df.loc[i, 'paid_interest'] + CF_df.loc[i, 'interest']
+                        CF_df.loc[i, 'paid_principal'] = CF_df.loc[i, 'paid_principal'] - (r['cash_flow'] + CF_df.loc[i, 'interest'])
+                        CF_df.loc[i, 'principal'] = CF_df.loc[i-1, 'principal'] + (r['cash_flow'] + CF_df.loc[i, 'interest'])
                         CF_df.loc[i, 'interest'] = 0
-        interest_id=pd.DataFrame({'investor_name':name,'date':CF_df['date'].iloc[-1],'interest':CF_df['interest'].iloc[-1],'principal':CF_df['principal'].iloc[-1],'paid_interest':CF_df['paid_interest'].iloc[-1],'paid_principal':CF_df['paid_principal'].iloc[-1]},index=[0])
+        
+        interest_id = pd.DataFrame({
+            'investor_name': name,
+            'date': CF_df['date'].iloc[-1],
+            'interest': CF_df['interest'].iloc[-1],
+            'principal': CF_df['principal'].iloc[-1],
+            'paid_interest': CF_df['paid_interest'].iloc[-1],
+            'paid_principal': CF_df['paid_principal'].iloc[-1]
+        }, index=[0])
         final_interest.append(interest_id)
+    
     return pd.concat(final_interest)
+
 
 def calc_sucsess_bound(payment, distribution,cur_date,investment_part=1,intrest_fees=0.07):
     final_interest=[]
@@ -173,13 +198,10 @@ def matix_per_date(d):
     matrix['commision_pro_rata']=-matrix['commision'].sum()*matrix['holdings']
     matrix['other_expenses_commision']=(matrix['commision_pro_rata']-matrix['other_expenses']+matrix['commision'])
     intrest=calc_interest(payment,distribution,dt)
-    st.write(intrest)
     openintrest = calc_interest(payment, distribution, datetime.combine(datetime(d.year,1,1), datetime.min.time()))
     ## merge the intrest with the openintrest to get the movement
     intrest=pd.merge(intrest,openintrest[['investor_name','interest','principal','paid_interest','paid_principal']],on='investor_name',suffixes=('','_openning'),how='outer')
-    st.write(intrest)
     intrest=intrest.fillna(0)
-    st.write(intrest)
 
     intrest['interest_movement']=intrest['interest']-intrest['interest_openning']
     intrest['principal_movement']=intrest['principal']-intrest['principal_openning']
