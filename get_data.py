@@ -173,22 +173,24 @@ def matix_per_date(d):
     matrix['commision_pro_rata']=-matrix['commision'].sum()*matrix['holdings']
     matrix['other_expenses_commision']=(matrix['commision_pro_rata']-matrix['other_expenses']+matrix['commision'])
     intrest=calc_interest(payment,distribution,dt)
+    st.write(intrest)
     openintrest = calc_interest(payment, distribution, datetime.combine(datetime(d.year,1,1), datetime.min.time()))
     ## merge the intrest with the openintrest to get the movement
     intrest=pd.merge(intrest,openintrest[['investor_name','interest','principal','paid_interest','paid_principal']],on='investor_name',suffixes=('','_openning'),how='outer')
+    st.write(intrest)
     intrest=intrest.fillna(0)
+    st.write(intrest)
+
     intrest['interest_movement']=intrest['interest']-intrest['interest_openning']
     intrest['principal_movement']=intrest['principal']-intrest['principal_openning']
     intrest['paid_interest_movement']=intrest['paid_interest']-intrest['paid_interest_openning']
     intrest['paid_principal_movement']=intrest['paid_principal']-intrest['paid_principal_openning']
     intrest['interest_fees_investor']=intrest['interest_movement']+intrest['paid_interest_movement']
+    st.write(intrest)
 
 
     # matrix[]
-    st.write(matrix)
-    st.write(intrest)
     matrix=pd.merge(matrix,intrest,on='investor_name')
-    st.write(matrix)
 
     matrix['profit_for_successes']=matrix['rent_income']-matrix['professional_expenses']
     -matrix['management_fees']-matrix['interest_fees']+matrix['other_expenses_commision']
