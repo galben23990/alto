@@ -144,107 +144,109 @@ def calc_sucsess_bound(payment, distribution,cur_date,investment_part=1,intrest_
     return pd.concat(final_interest)
 
 def matix_per_date(d):
-    payment, commitment, report, distribution = get_data()
+    payment, commitment, report, distribution=get_data()
+    # distribution=disribution_make_table(distribution,payment)
     dt = datetime.combine(d, datetime.min.time())
-    holdings = holding_per_date(payment, d)
-    openning_holdings = holding_per_date(payment, datetime(d.year, 1, 1))
-    
-    # Join the holdings with the opening holdings
-    holdings = pd.merge(holdings, openning_holdings[['investor_ID', 'investor_name', 'feeder', 'debt_from_commitment']], on=['investor_ID', 'investor_name', 'feeder'], suffixes=('', '_openning'), how='outer')
-    holdings = holdings.fillna(0)
-    holdings['debt_from_commitment_movement'] = holdings['debt_from_commitment'] - holdings['debt_from_commitment_openning']
-    
-    report = report.set_index("name").transpose()
-    report.start_date = pd.to_datetime(report.start_date)
-    report.end_date = pd.to_datetime(report.end_date)
-    
-    matrix = holdings
-    
-    # Add commitment sum to the matrix
-    matrix = pd.merge(matrix, commitment[['investor_ID', 'commitment_sum']], on='investor_ID')
-    current_report = pd.DataFrame(report[(report.end_date <= d)].iloc[-1]).T
+    holdings = holding_per_date(payment,d)
+    openning_holdings = holding_per_date(payment,datetime(d.year,1,1))
+    ## join the holdings with the openning holdings
+    holdings=pd.merge(holdings,openning_holdings[['investor_ID','investor_name','feeder','debt_from_commitment']],on=['investor_ID','investor_name','feeder'],suffixes=('','_openning'),how='outer')
+    holdings=holdings.fillna(0)
+    holdings['debt_from_commitment_movement']=holdings['debt_from_commitment']-holdings['debt_from_commitment_openning']
+    report=report.set_index("name").transpose()
+    report.start_date=pd.to_datetime(report.start_date)
+    report.end_date=pd.to_datetime(report.end_date)
+    matrix=holdings
+    ## add comitment sum to the matrix
+    matrix=pd.merge(matrix,commitment[['investor_ID','commitment_sum']],on='investor_ID')
+    current_report=pd.DataFrame(report[(report.end_date<=d)].iloc[-1]).T
     year_start = datetime(current_report.end_date[0].year, 1, 1)
-    
     # Broadcast financial data to each client
     matrix = matrix.join(current_report, how='cross')
     for c in current_report.columns:
         if 'date' in c:
             continue
-        matrix[c] = (matrix[c].replace('[\$,]', '', regex=True).astype(float)) * matrix['holdings']
-    
-    matrix['commision'] = 0
-    for ir, r in matrix.iterrows():
-        matrix.at[ir, 'commision'] = payment[(payment.investor_ID == r.investor_ID) & (payment.payment_date > year_start) & (payment.payment_date < r.end_date)]['commision_discount'].sum()
-    matrix['commision_pro_rata'] = -matrix['commision'].sum() * matrix['holdings']
-    matrix['other_expenses_commision'] = (matrix['commision_pro_rata'] - matrix['other_expenses'] + matrix['commision'])
-    
-    intrest = calc_interest(payment, distribution, dt)
-    openintrest = calc_interest(payment, distribution, datetime.combine(datetime(d.year, 1, 1), datetime.min.time()))
-    
-    # Merge the interest with the open interest to get the movement
-    intrest = pd.merge(intrest, openintrest[['investor_name', 'interest', 'principal', 'paid_interest', 'paid_principal']], on='investor_name', suffixes=('', '_openning'), how='outer')
-    intrest = intrest.fillna(0)
-    intrest['interest_movement'] = intrest['interest'] - intrest['interest_openning']
-    intrest['principal_movement'] = intrest['principal'] - intrest['principal_openning']
-    intrest['paid_interest_movement'] = intrest['paid_interest'] - intrest['paid_interest_openning']
-    intrest['paid_principal_movement'] = intrest['paid_principal'] - intrest['paid_principal_openning']
-    intrest['interest_fees_investor'] = intrest['interest_movement'] + intrest['paid_interest_movement']
-    
+        matrix[c]=(matrix[c].replace('[\$,]', '', regex=True).astype(float))*matrix['holdings']
+    matrix['commision']=0
+    for ir,r in matrix.iterrows():
+        matrix['commision'].iloc[ir]=payment[(payment.investor_ID==r.investor_ID)*(payment.payment_date>year_start)*(payment.payment_date<r.end_date)]['commision_discount'].sum()
+    matrix['commision_pro_rata']=-matrix['commision'].sum()*matrix['holdings']
+    matrix['other_expenses_commision']=(matrix['commision_pro_rata']-matrix['other_expenses']+matrix['commision'])
+    intrest=calc_interest(payment,distribution,dt)
+    openintrest = calc_interest(payment, distribution, datetime.combine(datetime(d.year,1,1), datetime.min.time()))
+    ## merge the intrest with the openintrest to get the movement
+    intrest=pd.merge(intrest,openintrest[['investor_name','interest','principal','paid_interest','paid_principal']],on='investor_name',suffixes=('','_openning'),how='outer')
+    intrest=intrest.fillna(0)
+
+    intrest['interest_movement']=intrest['interest']-intrest['interest_openning']
+    intrest['principal_movement']=intrest['principal']-intrest['principal_openning']
+    intrest['paid_interest_movement']=intrest['paid_interest']-intrest['paid_interest_openning']
+    intrest['paid_principal_movement']=intrest['paid_principal']-intrest['paid_principal_openning']
+    intrest['interest_fees_investor']=intrest['interest_movement']+intrest['paid_interest_movement']
+
+
+    # matrix[]
     # Merge the matrix with the interest DataFrame
     matrix = pd.merge(matrix, intrest, on='investor_name', how='left')
+    
 
     # Fill missing investors in interest with zeros
     for col in ['interest', 'principal', 'paid_interest', 'paid_principal', 'interest_movement', 'principal_movement', 'paid_interest_movement', 'paid_principal_movement', 'interest_fees_investor']:
         matrix[col] = matrix[col].fillna(0)
 
-    matrix['profit_for_successes'] = (
-        matrix['rent_income'] - matrix['professional_expenses'] - matrix['management_fees'] - matrix['interest_fees']
-        + matrix['other_expenses_commision'] + matrix['profits_share_of_investees'] + matrix['fair_value_adjustments']
-        + matrix['retained_earnings']
-    )
-    
-    success_fee = 0.2
-    preferd_interest = 0.07
-    lower_bound_success_fee = calc_sucsess_bound(payment, distribution, current_report.end_date[0], intrest_fees=preferd_interest)
-    upper_bound_success_fee = calc_sucsess_bound(payment, distribution, current_report.end_date[0], intrest_fees=preferd_interest * 1 / (1 - success_fee))
-    lower_bound_success_fee.rename(columns={'bound': 'lower_bound_success_fee'}, inplace=True)
-    upper_bound_success_fee.rename(columns={'bound': 'upper_bound_success_fee'}, inplace=True)
-    fee_bounds = pd.merge(lower_bound_success_fee, upper_bound_success_fee, on='investor_name')
-    matrix = pd.merge(matrix, fee_bounds, on='investor_name')
-    
-    matrix['success_fee'] = (
-        ((matrix['profit_for_successes'] > matrix['lower_bound_success_fee']) & (matrix['profit_for_successes'] < matrix['upper_bound_success_fee']))
-        * (matrix['profit_for_successes'] - matrix['lower_bound_success_fee'])
-        + (matrix['profit_for_successes'] > matrix['upper_bound_success_fee']) * (matrix['profit_for_successes'] * success_fee)
-    )
-    
-    matrix['investment_profit_share'] = matrix['profit_for_successes'] - matrix['success_fee']
-    
-    coloumn_list_dollar = [
-        'payment_sum', 'feeder_holdings', 'debt_from_commitment', 'calling_commitment', 'cash_and_cash_equivalents', 'deferred_inception_expense_net',
-        'related_parties', 'total_current_assets', 'investments_in_investees', 'real_estate_properties', 'total_long_term_assets', 'total_assets',
-        'security_deposits', 'Related Parties', 'loans', 'payables', 'total_current_liabilities', 'mortgage', 'total_non_current_liabilities',
-        'total_liabilities', 'capital_contributions', 'receivables_due_from_capital_contributions', 'Distributions', 'retained_earnings',
-        'accumulated_loss_from_operations', 'total_partners_capital', 'total_partners_capital_and_liabilities', 'rent_income',
-        'profits_share_of_investees', 'fair_value_adjustments', 'total_income', 'professional_expenses', 'interest_fees', 'management_fees',
-        'other_expenses', 'total_expenses', 'net_investment_loss', 'commision', 'commision_pro_rata', 'other_expenses_commision', 'interest',
-        'principal', 'paid_interest', 'paid_principal', 'profit_for_successes', 'lower_bound_success_fee', 'upper_bound_success_fee', 'success_fee',
-        'investment_profit_share', 'interest_movement', 'principal_movement', 'paid_interest_movement', 'paid_principal_movement', 'interest_fees_investor',
-        'interest_openning', 'principal_openning', 'paid_interest_openning', 'paid_principal_openning'
-    ]
-    
-    matrix[coloumn_list_dollar] = matrix[coloumn_list_dollar].astype(int)
-    matrix['other_expenses_commision'] = -matrix['other_expenses_commision']
-    matrix['total_expenses'] += matrix['other_expenses_commision'] - matrix['other_expenses']
-    
-    matrix.drop(columns=[
-        'cash_and_cash_equivalents', 'deferred_inception_expense_net', 'related_parties', 'total_current_assets', 'investments_in_investees',
-        'real_estate_properties', 'total_long_term_assets', 'total_assets', 'security_deposits', 'Related Parties', 'loans', 'payables',
-        'total_current_liabilities', 'mortgage', 'total_non_current_liabilities', 'total_liabilities', 'total_partners_capital_and_liabilities',
-        'receivables_due_from_capital_contributions'
-    ], inplace=True)
-    
+    st.write(matrix)
+    matrix['profit_for_successes']=matrix['rent_income']-matrix['professional_expenses']
+    -matrix['management_fees']-matrix['interest_fees']+matrix['other_expenses_commision']
+    +matrix['profits_share_of_investees']+matrix['fair_value_adjustments']+matrix['retained_earnings']
+    success_fee=0.2
+    preferd_interest=0.07
+    lower_bound_success_fee=calc_sucsess_bound(payment, distribution, current_report.end_date[0],intrest_fees=preferd_interest)
+    upper_bound_success_fee = calc_sucsess_bound(payment, distribution, current_report.end_date[0],intrest_fees=preferd_interest*1/(1-success_fee))
+    lower_bound_success_fee.rename(columns={'bound':'lower_bound_success_fee'},inplace=True)
+    upper_bound_success_fee.rename(columns={'bound':'upper_bound_success_fee'},inplace=True)
+    fee_bounds=pd.merge(lower_bound_success_fee,upper_bound_success_fee,on='investor_name')
+    matrix=pd.merge(matrix,fee_bounds,on='investor_name')
+    matrix['success_fee']=((matrix['profit_for_successes']>matrix['lower_bound_success_fee'])\
+                          *(matrix['profit_for_successes']<matrix['upper_bound_success_fee'])\
+                          *(matrix['profit_for_successes']-matrix['lower_bound_success_fee']))\
+                          +((matrix['profit_for_successes']>matrix['upper_bound_success_fee'])\
+                                                  *(matrix['profit_for_successes']*success_fee))
+
+    matrix['investment_profit_share']=matrix['profit_for_successes']-matrix['success_fee']
+
+    coloumn_list_dollar=['payment_sum','feeder_holdings','debt_from_commitment','calling_commitment',
+     'cash_and_cash_equivalents', 'deferred_inception_expense_net',
+     'related_parties', 'total_current_assets', 'investments_in_investees',
+     'real_estate_properties', 'total_long_term_assets', 'total_assets',
+     'security_deposits', 'Related Parties', 'loans', 'payables',
+     'total_current_liabilities', 'mortgage',
+     'total_non_current_liabilities', 'total_liabilities',
+     'capital_contributions', 'receivables_due_from_capital_contributions',
+     'Distributions', 'retained_earnings',
+     'accumulated_loss_from_operations', 'total_partners_capital',
+     'total_partners_capital_and_liabilities', 'rent_income',
+     'profits_share_of_investees', 'fair_value_adjustments', 'total_income',
+     'professional_expenses', 'interest_fees', 'management_fees',
+     'other_expenses', 'total_expenses', 'net_investment_loss', 'commision',
+     'commision_pro_rata', 'other_expenses_commision','interest',
+     'principal', 'paid_interest', 'paid_principal', 'profit_for_successes',
+     'lower_bound_success_fee',
+     'upper_bound_success_fee', 'success_fee', 'investment_profit_share',
+     'interest_movement', 'principal_movement', 'paid_interest_movement', 'paid_principal_movement', 'interest_fees_investor',
+     'interest_openning', 'principal_openning', 'paid_interest_openning', 'paid_principal_openning'
+     ]
+    matrix[coloumn_list_dollar]=matrix[coloumn_list_dollar].astype(int)
+    matrix['other_expenses_commision']=-matrix['other_expenses_commision']
+    matrix['total_expenses']+=matrix['other_expenses_commision']-matrix['other_expenses']
+
+    matrix.drop(columns=['cash_and_cash_equivalents', 'deferred_inception_expense_net',
+     'related_parties', 'total_current_assets', 'investments_in_investees',
+     'real_estate_properties', 'total_long_term_assets', 'total_assets',
+     'security_deposits', 'Related Parties', 'loans', 'payables',
+     'total_current_liabilities', 'mortgage',
+     'total_non_current_liabilities', 'total_liabilities','total_partners_capital_and_liabilities','receivables_due_from_capital_contributions',],inplace=True)
     return matrix
+
 if __name__ == "__main__":
     matix_per_date(datetime(2023,12,31))
     # all_creds = []
