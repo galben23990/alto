@@ -35,6 +35,7 @@ def get_data():
     payment = wks.get_as_df()
     payment.payment_date=pd.to_datetime(payment.payment_date)
     wks = sh.worksheet_by_title("commitment")
+    st.write(payment)
     commitment = wks.get_as_df()
     commitment.commitment_date = pd.to_datetime(commitment.commitment_date)
     wks = sh.worksheet_by_title("report")
