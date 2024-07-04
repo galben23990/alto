@@ -190,8 +190,12 @@ def matix_per_date(d):
 
 
     # matrix[]
-    matrix=pd.merge(matrix,intrest,on='investor_name')
+    # Merge the matrix with the interest DataFrame
+    matrix = pd.merge(matrix, intrest, on='investor_name', how='left')
 
+    # Fill missing investors in interest with zeros
+    for col in ['interest', 'principal', 'paid_interest', 'paid_principal', 'interest_movement', 'principal_movement', 'paid_interest_movement', 'paid_principal_movement', 'interest_fees_investor']:
+        matrix[col] = matrix[col].fillna(0)
     matrix['profit_for_successes']=matrix['rent_income']-matrix['professional_expenses']
     -matrix['management_fees']-matrix['interest_fees']+matrix['other_expenses_commision']
     +matrix['profits_share_of_investees']+matrix['fair_value_adjustments']+matrix['retained_earnings']
