@@ -27,26 +27,45 @@ with open(temp_cred_file, 'w') as file:
 
 # Authorize pygsheets with the service account
 gc = pygsheets.authorize(service_file=temp_cred_file)
-
+def get_as_df_float(worksheet):
+    df = worksheet.get_as_df()
+    for col in df.columns:
+        try:
+            df[col] = df[col].replace('[\$,]', '', regex=True).astype(float)
+        except:
+            try:
+                df[col] = df[col].astype(float)
+            except:
+                pass
+    return df
 def get_data():
     sh = gc.open("Alto")
     wks = sh.worksheet_by_title("payment")
-    payment = wks.get_as_df()
+    payment = get_as_df_float(wks)
     payment.payment_date=pd.to_datetime(payment.payment_date)
     wks = sh.worksheet_by_title("commitment")
-    commitment = wks.get_as_df()
+    commitment = get_as_df_float(wks)
     commitment.commitment_date = pd.to_datetime(commitment.commitment_date)
     wks = sh.worksheet_by_title("report")
-    report = wks.get_as_df()
+    report = get_as_df_float(wks)
     wks = sh.worksheet_by_title("distribution")
-    distribution = wks.get_as_df()
+    distribution = get_as_df_float(wks)
     ## conert to numbers
-    distribution['distribution']=distribution['distribution'].replace('[\$,]', '', regex=True).astype(float)
+    # distribution['distribution']=distribution['distribution'].replace('[\$,]', '', regex=True).astype(float)
     return payment,commitment,report,distribution
 
 def holding_per_date(payment,d):
     dt = datetime.combine(d, datetime.min.time())
     payment = payment[payment.payment_date <= dt]
+    #convert these columns to numbers ['payment_sum', 'calling_commitment', 'debt_from_commitment'] if empty set to 0
+    payment['payment_sum'].fillna(0, inplace=True)
+    payment['calling_commitment'].fillna(0, inplace=True)
+    payment['debt_from_commitment'].fillna(0, inplace=True)
+    payment['payment_sum'] = payment['payment_sum'].replace('[\$,]', '', regex=True).astype(float)
+    payment['calling_commitment'] = payment['calling_commitment'].replace('[\$,]', '', regex=True).astype(float)
+    payment['debt_from_commitment'] = payment['debt_from_commitment'].replace('[\$,]', '', regex=True).astype(float)
+
+
     ## calculate the holdings per investor per date sum over payment_sum calling_commitment and debt_from_commitment
     holdings = (payment.groupby(by=['investor_ID', 'investor_name', 'feeder'])[['payment_sum', 'calling_commitment', 'debt_from_commitment']].sum())
     holdings = holdings.reset_index()
@@ -159,7 +178,18 @@ def matix_per_date(d):
     matrix=holdings
     ## add comitment sum to the matrix
     matrix=pd.merge(matrix,commitment[['investor_ID','commitment_sum']],on='investor_ID')
-    current_report=pd.DataFrame(report[(report.end_date<=d)].iloc[-1]).T
+    # if no report is prior to the date then take an empty report with zero values
+    if len(report[(report.end_date<=d)])==0:
+        current_report=pd.DataFrame(report.iloc[0]).T
+        #change the date to the current date and the values to 0
+        current_report['end_date']=d
+        current_report['start_date']=d
+        for c in current_report.columns:
+            if 'date' in c:
+                continue
+            current_report[c]=0
+    else:
+        current_report=pd.DataFrame(report[(report.end_date<=d)].iloc[-1]).T
     year_start = datetime(current_report.end_date[0].year, 1, 1)
     # Broadcast financial data to each client
     matrix = matrix.join(current_report, how='cross')
@@ -177,7 +207,6 @@ def matix_per_date(d):
     ## merge the intrest with the openintrest to get the movement
     intrest=pd.merge(intrest,openintrest[['investor_name','interest','principal','paid_interest','paid_principal']],on='investor_name',suffixes=('','_openning'),how='outer')
     intrest=intrest.fillna(0)
-
     intrest['interest_movement']=intrest['interest']-intrest['interest_openning']
     intrest['principal_movement']=intrest['principal']-intrest['principal_openning']
     intrest['paid_interest_movement']=intrest['paid_interest']-intrest['paid_interest_openning']
@@ -186,7 +215,12 @@ def matix_per_date(d):
 
 
     # matrix[]
-    matrix=pd.merge(matrix,intrest,on='investor_name')
+
+
+    matrix=pd.merge(matrix,intrest,on='investor_name',how='left')
+    # fill empty values with 0 of only columns from intrest
+    columns=['interest','principal','paid_interest','paid_principal','interest_movement','principal_movement','paid_interest_movement','paid_principal_movement','interest_fees_investor']
+    matrix[columns]=matrix[columns].fillna(0)
 
     matrix['profit_for_successes']=matrix['rent_income']-matrix['professional_expenses']
     -matrix['management_fees']-matrix['interest_fees']+matrix['other_expenses_commision']
@@ -206,7 +240,7 @@ def matix_per_date(d):
                                                   *(matrix['profit_for_successes']*success_fee))
 
     matrix['investment_profit_share']=matrix['profit_for_successes']-matrix['success_fee']
-
+    matrix.fillna(0.0, inplace=True)
     coloumn_list_dollar=['payment_sum','feeder_holdings','debt_from_commitment','calling_commitment',
      'cash_and_cash_equivalents', 'deferred_inception_expense_net',
      'related_parties', 'total_current_assets', 'investments_in_investees',
@@ -240,8 +274,33 @@ def matix_per_date(d):
      'total_non_current_liabilities', 'total_liabilities','total_partners_capital_and_liabilities','receivables_due_from_capital_contributions',],inplace=True)
     return matrix
 
+def matix_per_date_including_openning_movement(d):
+    open_matrix=matix_per_date(datetime(d.year,1,1))
+    close_matrix=matix_per_date(d)
+    final_matrix=close_matrix
+    final_matrix['balance']=0
+    final_matrix['opening_balance']=0
+    ## for each investor calculate the movement from the openning matrix if the investor is not in the openning matrix then the movement is the value of the close matrix
+    coloumns_for_open_close=['payment_sum','Distributions','success_fee','net_investment_loss']
+    for investor in close_matrix.investor_name.unique():
+        open_matrix_investor=open_matrix[open_matrix.investor_name==investor]
+        iloc=close_matrix[close_matrix.investor_name==investor].index
+        if len(open_matrix_investor)==0:
+            for c in coloumns_for_open_close:
+                final_matrix.loc[iloc,c+'_movement']=final_matrix.loc[iloc,c]
+                final_matrix.loc[iloc,c+'_open']=0
+        else:
+            for c in coloumns_for_open_close:
+                final_matrix.loc[iloc,c+'_movement']=final_matrix.loc[iloc,c]-open_matrix_investor[c]
+                final_matrix.loc[iloc,c+'_open']=open_matrix_investor[c]
+        final_matrix.loc[iloc,'balance']=final_matrix.loc[iloc,'payment_sum']-final_matrix.loc[iloc,'Distributions']-final_matrix.loc[iloc,'success_fee']+final_matrix.loc[iloc,'net_investment_loss']
+        final_matrix.loc[iloc,'opening_balance']=final_matrix.loc[iloc,'payment_sum_open']-final_matrix.loc[iloc,'Distributions_open']-final_matrix.loc[iloc,'success_fee_open']+final_matrix.loc[iloc,'net_investment_loss_open']
+    return final_matrix
+
+
+
 if __name__ == "__main__":
-    matix_per_date(datetime(2023,12,31))
+    matix_per_date_including_openning_movement(datetime(2023,12,31))
     # all_creds = []
     # for i, row in cred_df.iterrows():
     #     # if (row.latest_date_uploaded=='') or (datetime.datetime.fromisoformat(row.latest_date_uploaded)<datetime.datetime.now()-datetime.timedelta(5)):
