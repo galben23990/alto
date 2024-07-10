@@ -28,6 +28,7 @@ with open(temp_cred_file, 'w') as file:
 
 # Authorize pygsheets with the service account
 gc = pygsheets.authorize(service_file=temp_cred_file)
+
 def get_as_df_float(worksheet):
     df = worksheet.get_as_df()
     for col in df.columns:
@@ -79,17 +80,6 @@ def holding_per_date(payment,d):
     holdings["holdings_per_feeder"] = holdings['payment_sum'] / holdings['feeder_holdings']
     return holdings
 
-# def disribution_make_table(distribution,payment):
-#     final_distribution = pd.DataFrame()
-#     pd.to_datetime(distribution.date)[0]
-#     for i,r in distribution.iterrows():
-#         tmp = holding_per_date(payment,pd.to_datetime(r.date))
-#         tmp.drop(columns=['payment_sum','holdings_per_feeder','feeder_holdings','debt_from_commitment','calling_commitment'],inplace=True)
-#         tmp.rename(columns={'holdings':'distribution'},inplace=True)
-#         tmp['date']=r.date
-#         tmp['distribution']=tmp['distribution']*float(r['sum'].replace(',', ''))
-#         final_distribution=pd.concat([final_distribution,tmp])
-#     return final_distribution
 def calc_interest(payment, distribution,cur_date,investment_part=0.7,intrest_fees=0.1):
     final_interest=[]
     for name in payment.investor_name.unique():
@@ -100,6 +90,7 @@ def calc_interest(payment, distribution,cur_date,investment_part=0.7,intrest_fee
         CF_df.rename(columns={'payment_date':'date','payment_sum':'cash_flow'},inplace=True)
         distribution_id=distribution[distribution.investor_name==name]
         distribution_id=distribution_id[['date','distribution']]
+        distribution_id['distribution']=-distribution_id['distribution']
         distribution_id.rename(columns={'distribution':'cash_flow'},inplace=True)
         distribution_id['date']=pd.to_datetime(distribution_id['date'])
         CF_df=pd.concat([CF_df,distribution_id])
@@ -147,6 +138,7 @@ def calc_sucsess_bound(payment, distribution,cur_date,investment_part=1,intrest_
         CF_df.rename(columns={'payment_date':'date','payment_sum':'cash_flow'},inplace=True)
         distribution_id=distribution[distribution.investor_name==name]
         distribution_id=distribution_id[['date','distribution']]
+        distribution_id['distribution']=-distribution_id['distribution']
         distribution_id.rename(columns={'distribution':'cash_flow'},inplace=True)
         distribution_id['date']=pd.to_datetime(distribution_id['date'])
         CF_df=pd.concat([CF_df,distribution_id])
@@ -266,6 +258,7 @@ def matix_per_date(d):
     matrix[coloumn_list_dollar]=matrix[coloumn_list_dollar].astype(int)
     matrix['other_expenses_commision']=-matrix['other_expenses_commision']
     matrix['total_expenses']+=matrix['other_expenses_commision']-matrix['other_expenses']
+    matrix['net_investment_loss']=matrix['total_income']-matrix['total_expenses']+matrix['retained_earnings']
 
     matrix.drop(columns=['cash_and_cash_equivalents', 'deferred_inception_expense_net',
      'related_parties', 'total_current_assets', 'investments_in_investees',
@@ -294,13 +287,14 @@ def matix_per_date_including_openning_movement(d):
             for c in coloumns_for_open_close:
                 final_matrix.loc[iloc,c+'_movement']=final_matrix.loc[iloc,c]-open_matrix_investor[c]
                 final_matrix.loc[iloc,c+'_open']=open_matrix_investor[c]
-        final_matrix.loc[iloc,'balance']=final_matrix.loc[iloc,'payment_sum']-final_matrix.loc[iloc,'Distributions']-final_matrix.loc[iloc,'success_fee']+final_matrix.loc[iloc,'net_investment_loss']
-        final_matrix.loc[iloc,'opening_balance']=final_matrix.loc[iloc,'payment_sum_open']-final_matrix.loc[iloc,'Distributions_open']-final_matrix.loc[iloc,'success_fee_open']+final_matrix.loc[iloc,'net_investment_loss_open']
+        final_matrix.loc[iloc,'balance']=final_matrix.loc[iloc,'payment_sum']+final_matrix.loc[iloc,'Distributions']-final_matrix.loc[iloc,'success_fee']+final_matrix.loc[iloc,'net_investment_loss']
+        final_matrix.loc[iloc,'opening_balance']=final_matrix.loc[iloc,'payment_sum_open']+final_matrix.loc[iloc,'Distributions_open']-final_matrix.loc[iloc,'success_fee_open']+final_matrix.loc[iloc,'net_investment_loss_open']
     return final_matrix
 
 
 
 if __name__ == "__main__":
+    # matix_per_date(datetime(2023,12,31))
     matix_per_date_including_openning_movement(datetime(2023,12,31))
     # all_creds = []
     # for i, row in cred_df.iterrows():
