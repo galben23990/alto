@@ -7,7 +7,7 @@ def Calculate_Matrix():
     def get_quarter_dates(quarter):
         current_year = date.today().year
         quarters = {
-            "Q1-24": date(2024, 3, 31),
+            "Q1-23": date(2023, 3, 31),
             "Q2-23": date(2023, 6, 30),
             "Q3-23": date(2023, 9, 30),
             "Q4-23": date(2023, 12, 31),
@@ -19,7 +19,7 @@ def Calculate_Matrix():
     col1, col2 = st.columns(2)
     with col1:
         st.header('Select Quarter or Date')
-        quarter = st.selectbox('Choose Quarter or Specific Date', ['', 'Q1-24', 'Q2-23', 'Q3-23', 'Q4-23', 'Specific Date'])
+        quarter = st.selectbox('Choose Quarter or Specific Date', ['', 'Q1-23', 'Q2-23', 'Q3-23', 'Q4-23', 'Specific Date'])
         if quarter != '' and quarter != 'Specific Date':
             d = get_quarter_dates(quarter)
         else:
