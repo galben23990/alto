@@ -40,19 +40,6 @@ def get_as_df_float(worksheet):
             except:
                 pass
     return df
-
-def get_as_df_float(worksheet):
-    df = worksheet.get_as_df()
-    for col in df.columns:
-        try:
-            df[col] = df[col].replace('[\$,]', '', regex=True).astype(float)
-        except:
-            try:
-                df[col] = df[col].astype(float)
-            except:
-                pass
-    return df
-    
 def get_data():
     sh = gc.open("Alto")
     wks = sh.worksheet_by_title("payment")
@@ -309,8 +296,8 @@ def matix_per_date_including_openning_movement(d):
 
 
 if __name__ == "__main__":
-    matix_per_date(datetime(2023,12,31))
-    # matix_per_date_including_openning_movement(datetime(2023,12,31))
+    # matix_per_date(datetime(2023,12,31))
+    matix_per_date_including_openning_movement(datetime(2023,12,31))
     # all_creds = []
     # for i, row in cred_df.iterrows():
     #     # if (row.latest_date_uploaded=='') or (datetime.datetime.fromisoformat(row.latest_date_uploaded)<datetime.datetime.now()-datetime.timedelta(5)):
