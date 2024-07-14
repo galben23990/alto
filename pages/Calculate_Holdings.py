@@ -9,7 +9,9 @@ import time
 def get_pie_style(labels, sizes, col):
     explode = np.array([s / np.array(sizes).sum() for s in sizes])
     fig1, ax1 = plt.subplots()
-    a, b, c = ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, pctdistance=0.85, explode=explode, shadow=True)
+    labels_color = 'black'
+
+    a, b, c = ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, pctdistance=0.85, explode=explode, shadow=True, colors=plt.cm.tab20.colors)
     # _, _, autotexts = pie(fbfrac, labels=fblabel, autopct='%1.1f%%', pctdistance=0.8, startangle=90, colors=fbcolor)
     for autotext in b:
         autotext.set_color('white')
@@ -64,7 +66,7 @@ def Calculate_Holdings():
                 col3, col4 = st.columns(2)
                 with col3:
                     # Perform calculations and display results
-                    payment, commitment, report,x = get_data()
+                    payment, commitment, report,sadsadsa = get_data()
                     holdings = holding_per_date(payment, d)
                     holdings = holdings.sort_values(by='holdings', ascending=False)
                     holdings = holdings.set_index("investor_ID")
