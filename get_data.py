@@ -30,7 +30,6 @@ with open(temp_cred_file, 'w') as file:
 gc = pygsheets.authorize(service_file=temp_cred_file)
 
 
-
 def get_as_df_float(worksheet):
     df = worksheet.get_as_df()
     for col in df.columns:
@@ -98,7 +97,13 @@ def calc_interest(payment, distribution,cur_date,investment_part=0.7,intrest_fee
         CF_df=pd.concat([CF_df,distribution_id])
         CF_df=CF_df[CF_df.date<=cur_date]
         CF_df.reset_index(inplace=True,drop=True)
-        CF_df.loc[len(CF_df.index)]=[cur_date,0.0]
+        CF_df["is_quarter"]=False
+        CF_df[CF_df["cash_flow"]<0]["is_quarter"]=True
+        for quarter in ['03-31','06-30','09-30','12-31']:
+            tmp_date=datetime(cur_date.year,int(quarter.split('-')[0]),int(quarter.split('-')[1]))
+            if tmp_date<=cur_date:
+                CF_df.loc[len(CF_df.index)]=[tmp_date,0.0,True]
+        CF_df.loc[len(CF_df.index)]=[cur_date,0.0,True]
         CF_df.sort_values(by='date',inplace=True)
         CF_df.reset_index(inplace=True,drop=True)
         CF_df['principal']=0
@@ -114,7 +119,10 @@ def calc_interest(payment, distribution,cur_date,investment_part=0.7,intrest_fee
                 CF_df.loc[i, 'paid_principal'] = 0
             else:
                 days = (r['date'] - CF_df.loc[i - 1, 'date']).days
-                CF_df.loc[i, 'interest'] = CF_df.loc[i-1, 'interest'] + (CF_df.loc[i - 1, 'principal']+CF_df.loc[i-1, 'interest']) * ((1+intrest_fees)**(days/365)-1)
+                if CF_df.loc[i,'is_quarter']:
+                    CF_df.loc[i, 'interest'] = CF_df.loc[i - 1, 'interest'] + (CF_df.loc[i - 1, 'principal'] + CF_df.loc[i - 1, 'interest']) * (intrest_fees * (days / 365))
+                else:
+                    CF_df.loc[i, 'interest'] = CF_df.loc[i - 1, 'interest'] + (CF_df.loc[i - 1, 'principal'] + CF_df.loc[i - 1, 'interest']) * (intrest_fees * (days / 365))
                 CF_df.loc[i, 'paid_interest'] = CF_df.loc[i-1,'paid_interest']
                 CF_df.loc[i, 'paid_principal'] = CF_df.loc[i - 1, 'paid_principal']
                 if r.cash_flow>0:
@@ -260,7 +268,7 @@ def matix_per_date(d):
      'interest_movement', 'principal_movement', 'paid_interest_movement', 'paid_principal_movement', 'interest_fees_investor',
      'interest_openning', 'principal_openning', 'paid_interest_openning', 'paid_principal_openning'
      ]
-    matrix[coloumn_list_dollar]=matrix[coloumn_list_dollar].astype(int)
+    matrix[coloumn_list_dollar]=matrix[coloumn_list_dollar].round().astype(int)
     matrix['other_expenses_commision']=-matrix['other_expenses_commision']
     matrix['total_expenses']+=matrix['other_expenses_commision']-matrix['other_expenses']
     matrix['net_investment_loss']=matrix['total_income']-matrix['total_expenses']+matrix['retained_earnings']
@@ -301,10 +309,10 @@ def matix_per_date_including_openning_movement(d):
 if __name__ == "__main__":
     # matix_per_date(datetime(2023,12,31))
     matix_per_date_including_openning_movement(datetime(2023,12,31))
-# all_creds = []
-# for i, row in cred_df.iterrows():
-#     # if (row.latest_date_uploaded=='') or (datetime.datetime.fromisoformat(row.latest_date_uploaded)<datetime.datetime.now()-datetime.timedelta(5)):
-#     tmp_dict = row.to_dict()
-#     all_creds.append(tmp_dict)
-# dict_cf = {}
-# what is a freeze reuqriment.txt terimail command?
+    # all_creds = []
+    # for i, row in cred_df.iterrows():
+    #     # if (row.latest_date_uploaded=='') or (datetime.datetime.fromisoformat(row.latest_date_uploaded)<datetime.datetime.now()-datetime.timedelta(5)):
+    #     tmp_dict = row.to_dict()
+    #     all_creds.append(tmp_dict)
+    # dict_cf = {}
+    # what is a freeze reuqriment.txt terimail command?
