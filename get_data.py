@@ -228,9 +228,8 @@ def matix_per_date(d):
     columns=['interest','principal','paid_interest','paid_principal','interest_movement','principal_movement','paid_interest_movement','paid_principal_movement','interest_fees_investor']
     matrix[columns]=matrix[columns].fillna(0)
 
-    matrix['profit_for_successes']=matrix['rent_income']-matrix['professional_expenses']
-    -matrix['management_fees']-matrix['interest_fees']+matrix['other_expenses_commision']
-    +matrix['profits_share_of_investees']+matrix['fair_value_adjustments']+matrix['retained_earnings']
+    matrix['profit_for_successes']=(matrix['rent_income']-matrix['professional_expenses']-matrix['management_fees']-matrix['interest_fees']+matrix['other_expenses_commision']+matrix['profits_share_of_investees']+matrix['fair_value_adjustments']+matrix['retained_earnings'])
+
     success_fee=0.2
     preferd_interest=0.07
     lower_bound_success_fee=calc_sucsess_bound(payment, distribution, current_report.end_date[0],intrest_fees=preferd_interest)
@@ -309,10 +308,10 @@ def matix_per_date_including_openning_movement(d):
 if __name__ == "__main__":
     # matix_per_date(datetime(2023,12,31))
     matix_per_date_including_openning_movement(datetime(2023,12,31))
-    # all_creds = []
-    # for i, row in cred_df.iterrows():
-    #     # if (row.latest_date_uploaded=='') or (datetime.datetime.fromisoformat(row.latest_date_uploaded)<datetime.datetime.now()-datetime.timedelta(5)):
-    #     tmp_dict = row.to_dict()
-    #     all_creds.append(tmp_dict)
-    # dict_cf = {}
-    # what is a freeze reuqriment.txt terimail command?
+# all_creds = []
+# for i, row in cred_df.iterrows():
+#     # if (row.latest_date_uploaded=='') or (datetime.datetime.fromisoformat(row.latest_date_uploaded)<datetime.datetime.now()-datetime.timedelta(5)):
+#     tmp_dict = row.to_dict()
+#     all_creds.append(tmp_dict)
+# dict_cf = {}
+# what is a freeze reuqriment.txt terimail command?
