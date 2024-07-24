@@ -308,10 +308,9 @@ def matix_per_date_including_openning_movement(d):
 if __name__ == "__main__":
     # matix_per_date(datetime(2023,12,31))
     matix_per_date_including_openning_movement(datetime(2023,12,31))
-# all_creds = []
-# for i, row in cred_df.iterrows():
-#     # if (row.latest_date_uploaded=='') or (datetime.datetime.fromisoformat(row.latest_date_uploaded)<datetime.datetime.now()-datetime.timedelta(5)):
-#     tmp_dict = row.to_dict()
-#     all_creds.append(tmp_dict)
-# dict_cf = {}
-# what is a freeze reuqriment.txt terimail command?
+    # all_creds = []
+    # for i, row in cred_df.iterrows():
+    #     # if (row.latest_date_uploaded=='') or (datetime.datetime.fromisoformat(row.latest_date_uploaded)<datetime.datetime.now()-datetime.timedelta(5)):
+    #     tmp_dict = row.to_dict()
+    #     all_creds.append(tmp_dict)
+    # dict_cf = {}
