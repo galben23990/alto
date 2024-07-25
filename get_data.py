@@ -30,6 +30,7 @@ with open(temp_cred_file, 'w') as file:
 gc = pygsheets.authorize(service_file=temp_cred_file)
 
 
+
 def get_as_df_float(worksheet):
     df = worksheet.get_as_df()
     for col in df.columns:
@@ -299,8 +300,8 @@ def matix_per_date_including_openning_movement(d):
             for c in coloumns_for_open_close:
                 final_matrix.loc[iloc,c+'_movement']=final_matrix.loc[iloc,c]-open_matrix_investor[c]
                 final_matrix.loc[iloc,c+'_open']=open_matrix_investor[c]
-        final_matrix.loc[iloc,'balance']=final_matrix.loc[iloc,'payment_sum']+final_matrix.loc[iloc,'Distributions']-final_matrix.loc[iloc,'success_fee']+final_matrix.loc[iloc,'net_investment_loss']
-        final_matrix.loc[iloc,'opening_balance']=final_matrix.loc[iloc,'payment_sum_open']+final_matrix.loc[iloc,'Distributions_open']-final_matrix.loc[iloc,'success_fee_open']+final_matrix.loc[iloc,'net_investment_loss_open']
+        final_matrix.loc[iloc,'balance']=final_matrix.loc[iloc,'payment_sum']-final_matrix.loc[iloc,'Distributions']-final_matrix.loc[iloc,'success_fee']+final_matrix.loc[iloc,'net_investment_loss']
+        final_matrix.loc[iloc,'opening_balance']=final_matrix.loc[iloc,'payment_sum_open']-final_matrix.loc[iloc,'Distributions_open']-final_matrix.loc[iloc,'success_fee_open']+final_matrix.loc[iloc,'net_investment_loss_open']
     return final_matrix
 
 
@@ -308,9 +309,11 @@ def matix_per_date_including_openning_movement(d):
 if __name__ == "__main__":
     # matix_per_date(datetime(2023,12,31))
     matix_per_date_including_openning_movement(datetime(2023,12,31))
-    # all_creds = []
-    # for i, row in cred_df.iterrows():
-    #     # if (row.latest_date_uploaded=='') or (datetime.datetime.fromisoformat(row.latest_date_uploaded)<datetime.datetime.now()-datetime.timedelta(5)):
-    #     tmp_dict = row.to_dict()
-    #     all_creds.append(tmp_dict)
-    # dict_cf = {}
+# all_creds = []
+# for i, row in cred_df.iterrows():
+#     # if (row.latest_date_uploaded=='') or (datetime.datetime.fromisoformat(row.latest_date_uploaded)<datetime.datetime.now()-datetime.timedelta(5)):
+#     tmp_dict = row.to_dict()
+#     all_creds.append(tmp_dict)
+# dict_cf = {}
+# what is a freeze reuqriment.txt terimail command?
+
